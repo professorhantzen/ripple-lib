@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var Transaction = require('../src/js/ripple/transaction').Transaction;
-
+var Seed = require('../src/js/ripple/seed').Seed;
 var argv = process.argv.slice(2);
 
 var verbose;
@@ -56,7 +56,7 @@ function ready() {
 function print_usage() {
   console.log(
     'Usage: rsign.js <secret> <json>\n\n',
-    'Example: rsign.js ssq55ueDob4yV3kPVnNQLHB6icwpC','\''+
+    'Example: rsign.js ssq55ueDob4yV3kPVnNQLHB6icwpC',
     JSON.stringify({
       TransactionType: 'Payment',
       Account: 'r3P9vH81KBayazSTrQj6S25jW6kDb779Gi',
@@ -64,7 +64,7 @@ function print_usage() {
       Amount: '200000000',
       Fee: '10',
       Sequence: 1
-    })+'\''
+    })
     );
 };
 
@@ -73,6 +73,18 @@ function sign_transaction() {
 
   tx.tx_json = tx_json;
   tx._secret = secret;
+
+  if (typeof tx.tx_json.SigningPubKey === 'undefined') {
+    try {
+      var seed = Seed.from_json(tx._secret);
+      var key  = seed.get_key(tx.tx_json.Account);
+      tx.tx_json.SigningPubKey = key.to_hex_pub();
+    } catch(e) {
+      console.log(e);
+      return false;
+    }
+  }
+
   tx.complete();
 
   var unsigned_blob = tx.serialize().to_hex();
